@@ -1,0 +1,46 @@
+😈 Bully out of insults for this pass!
+OldMan.js:429 👴 DEBUG UPDATE: x = -81 state = waiting velocity = 0
+Bully.js:365 😈 Bully out of insults for this pass!
+OldMan.js:429 👴 DEBUG UPDATE: x = -81 state = waiting velocity = 0
+3Bully.js:365 😈 Bully out of insults for this pass!
+OldMan.js:429 👴 DEBUG UPDATE: x = -81 state = waiting velocity = 0
+Bully.js:365 😈 Bully out of insults for this pass!
+PowerUp.js:72 ✨ Power-up spawned: caramel-apple!
+PowerUpManager.js:125 ✨ Power-up spawned at x=862!
+OldMan.js:429 👴 DEBUG UPDATE: x = -81 state = waiting velocity = 0
+Bully.js:365 😈 Bully out of insults for this pass!
+BlueberrydaleLibrary.js:84 📚 Creating Blueberrydale Public Library!
+PowerUpManager.js:86 🍫 DEBUG: distance=14500, lastCandyBar=12501.942240000615, since=1999, need=2500
+PowerUpManager.js:86 🍫 DEBUG: distance=14502, lastCandyBar=12501.942240000615, since=2000, need=2500
+PowerUpManager.js:86 🍫 DEBUG: distance=14504, lastCandyBar=12501.942240000615, since=2002, need=2500
+PowerUpManager.js:86 🍫 DEBUG: distance=14506, lastCandyBar=12501.942240000615, since=2004, need=2500
+PowerUpManager.js:86 🍫 DEBUG: distance=14508, lastCandyBar=12501.942240000615, since=2006, need=2500
+OldMan.js:429 👴 DEBUG UPDATE: x = -81 state = waiting velocity = 0
+Bully.js:365 😈 Bully out of insults for this pass!
+OldMan.js:429 👴 DEBUG UPDATE: x = -81 state = waiting velocity = 0
+4Bully.js:365 😈 Bully out of insults for this pass!
+OldMan.js:429 👴 DEBUG UPDATE: x = -81 state = waiting velocity = 0
+Bully.js:365 😈 Bully out of insults for this pass!
+2OldMan.js:429 👴 DEBUG UPDATE: x = -81 state = waiting velocity = 0
+DottieBaconSchool.js:106 🏫 Creating Dottie Bacon School zone #3 at 1500m!
+DottieBaconSchool.js:392 😈 Bullies will patrol the school zone!
+Bully.js:365 😈 Bully out of insults for this pass!
+OldMan.js:429 👴 DEBUG UPDATE: x = -81 state = waiting velocity = 0
+Bully.js:110 😈 Bully created! Will charge from right
+4Bully.js:365 😈 Bully out of insults for this pass!
+OldMan.js:429 👴 DEBUG UPDATE: x = -81 state = waiting velocity = 0
+OldMan.js:206 👴 Old man entering from the right!
+Bully.js:365 😈 Bully out of insults for this pass!
+OldMan.js:429 👴 DEBUG UPDATE: x = 980 state = entering velocity = 0
+Bully.js:197 😈 Bully entering from right!
+DottieBaconSchool.js:126 🏫⚠️ Entering Dottie Bacon School zone!
+BlueberrydaleLibrary.js:279 🎉📚 VICTORY! Player reached Blueberrydale Public Library!
+BlueberrydaleLibrary.js:291  Uncaught TypeError: this.scene.background.stopScrolling is not a function
+    at BlueberrydaleLibrary.playerReachedLibrary (BlueberrydaleLibrary.js:291:35)
+    at BlueberrydaleLibrary.checkZone (BlueberrydaleLibrary.js:74:18)
+    at initialize.update ((index):1197:47)
+    at initialize.step (phaser.min.js:1:978114)
+    at initialize.update (phaser.min.js:1:965335)
+    at initialize.step (phaser.min.js:1:76015)
+    at initialize.step (phaser.min.js:1:80314)
+    at e (phaser.min.js:1:141083)

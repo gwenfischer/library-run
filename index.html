@@ -1,0 +1,1312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library Run</title>
+    <style>
+        /* 
+         * Page Styling
+         * WHY these styles? We want the game canvas centered on a nice background
+         */
+        
+        /* Remove default browser spacing */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        /* Center the game canvas on the page */
+        body {
+            /* Use flexbox for easy centering */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            
+            /* Make body fill the whole screen */
+            min-height: 100vh;
+            
+            /* Dark background so the game stands out */
+            background-color: #2c3e50;
+            
+            /* Nice font for any text we might add */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        /* Style the game container */
+        #game-container {
+            /* Add a subtle shadow to make the game "pop" */
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            
+            /* Rounded corners look friendlier */
+            border-radius: 8px;
+            
+            /* Hide any overflow from the canvas */
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <!-- 
+        Game Container
+        WHY use a container? It lets us style the canvas area (shadow, border-radius)
+        without affecting the canvas itself
+    -->
+    <div id="game-container"></div>
+
+    <!-- 
+        Phaser 3 from CDN
+        WHY CDN? No installation needed - just include and start coding!
+        This loads the minified version for faster loading
+    -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
+
+    <!--
+        Game Classes
+        WHY separate files? Keeps code organized and maintainable!
+        Load these BEFORE main game code so the classes are available
+    -->
+    <script src="js/Background.js"></script>
+    <script src="js/ui/ConfidenceMeter.js"></script>
+    <script src="js/sprites/Player.js"></script>
+    <script src="js/sprites/OldMan.js"></script>
+    <script src="js/sprites/Bully.js"></script>
+    <script src="js/sprites/PowerUp.js"></script>
+    <script src="js/sprites/FallingCandyBar.js"></script>
+    <script src="js/sprites/obstacles/Newspaper.js"></script>
+    <script src="js/sprites/obstacles/Squirrel.js"></script>
+    <script src="js/sprites/obstacles/WordBubble.js"></script>
+    <script src="js/zones/DottieBaconSchool.js"></script>
+    <script src="js/zones/BlueberrydaleLibrary.js"></script>
+    <script src="js/managers/PowerUpManager.js"></script>
+
+    <!-- 
+        Game Configuration and Setup
+        WHY inline script for now? Keeps things simple while we're getting started.
+        We'll move this to separate files as the game grows!
+    -->
+    <script>
+        // =============================================================
+        // GAME CONFIGURATION
+        // This object tells Phaser how to set up our game
+        // =============================================================
+        
+        /**
+         * Phaser Game Configuration
+         * 
+         * WHY an object? Phaser uses this config to know:
+         * - What size to make the canvas
+         * - What physics engine to use
+         * - What scenes to load
+         * - Where to put the game on the page
+         */
+        const config = {
+            // Use WebGL if available, fall back to Canvas
+            // WHY AUTO? WebGL is faster, but not all browsers support it
+            type: Phaser.AUTO,
+            
+            // Game dimensions
+            // WHY 800x600? It's a classic size that fits most screens well
+            width: 800,
+            height: 600,
+            
+            // Where to put the game canvas
+            // WHY parent? This puts the canvas inside our styled container
+            parent: 'game-container',
+            
+            // Background color (sky blue!)
+            // WHY hex color? Phaser accepts hex colors like CSS
+            backgroundColor: '#87CEEB',
+            
+            // Render settings to prevent blur!
+            // WHY these settings? Pixel art can look blurry when moving
+            // because the browser tries to smooth the pixels
+            render: {
+                // pixelArt mode disables anti-aliasing on textures
+                // WHY? Our hand-drawn sprites look crisper without smoothing!
+                pixelArt: true,
+                
+                // Round pixel positions to whole numbers
+                // WHY? Sub-pixel positioning causes blur when sprites move
+                roundPixels: true
+            },
+            
+            // Physics configuration
+            // WHY arcade? It's simple and perfect for a 2D side-scroller!
+            physics: {
+                default: 'arcade',
+                arcade: {
+                    // Gravity pulls things down (like jumping players!)
+                    // WHY 300? It feels natural - not too floaty, not too fast
+                    gravity: { y: 300 },
+                    
+                    // Set to true to see collision boxes (helpful for debugging!)
+                    debug: false
+                }
+            },
+            
+            // The scenes in our game
+            // WHY an array? Games usually have multiple scenes (menu, gameplay, etc.)
+            scene: {
+                // These functions are called by Phaser at specific times
+                preload: preload,  // Load assets here
+                create: create,    // Set up game objects here
+                update: update     // Game loop - runs every frame
+            }
+        };
+
+        // =============================================================
+        // SCENE FUNCTIONS
+        // These are the three main functions Phaser calls for each scene
+        // =============================================================
+
+        /**
+         * Preload Function
+         * 
+         * Called ONCE before the scene starts.
+         * Use this to load images, sounds, and other assets.
+         * 
+         * WHY preload separately? Loading assets takes time.
+         * We want everything loaded BEFORE we try to use it!
+         */
+        function preload() {
+            console.log('🎮 Library Run - Preloading assets...');
+            
+            // =============================================================
+            // STUDENT PLACEHOLDER - A girl with blonde hair and blue backpack!
+            // We create TWO textures: happy (confident) and sad (low confidence)
+            // =============================================================
+            
+            createStudentTexture.call(this, 'player-happy', true);   // Smiling version
+            createStudentTexture.call(this, 'player-sad', false);    // Frowning version
+            
+            console.log('✅ Student textures created (happy & sad)!');
+            
+            // =============================================================
+            // OLD MAN PLACEHOLDER
+            // A grumpy old man in a cardigan with glasses
+            // =============================================================
+            
+            const oldManGraphics = this.make.graphics({ x: 0, y: 0, add: false });
+            
+            // Body (cardigan - brownish)
+            oldManGraphics.fillStyle(0x8B4513, 1);
+            oldManGraphics.fillRect(5, 25, 30, 45);
+            
+            // Head (skin tone)
+            oldManGraphics.fillStyle(0xFFDBAC, 1);
+            oldManGraphics.fillCircle(20, 15, 12);
+            
+            // Gray hair
+            oldManGraphics.fillStyle(0x9E9E9E, 1);
+            oldManGraphics.fillRect(10, 3, 20, 8);
+            
+            // Glasses (two circles connected)
+            oldManGraphics.lineStyle(2, 0x333333, 1);
+            oldManGraphics.strokeCircle(14, 15, 5);
+            oldManGraphics.strokeCircle(26, 15, 5);
+            oldManGraphics.lineBetween(19, 15, 21, 15);
+            
+            // Grumpy frown
+            oldManGraphics.lineStyle(2, 0x000000, 1);
+            oldManGraphics.beginPath();
+            oldManGraphics.arc(20, 24, 5, 1.1 * Math.PI, 1.9 * Math.PI);
+            oldManGraphics.strokePath();
+            
+            // Arms (ready to throw!)
+            oldManGraphics.fillStyle(0x8B4513, 1);
+            oldManGraphics.fillRect(32, 30, 12, 8);
+            
+            oldManGraphics.generateTexture('oldman', 50, 70);
+            oldManGraphics.destroy();
+            
+            console.log('✅ Old Man placeholder texture created!');
+            
+            // =============================================================
+            // NEWSPAPER PLACEHOLDER
+            // A rolled-up newspaper projectile
+            // =============================================================
+            
+            const newspaperGraphics = this.make.graphics({ x: 0, y: 0, add: false });
+            
+            // Paper roll (light gray)
+            newspaperGraphics.fillStyle(0xE0E0E0, 1);
+            newspaperGraphics.fillRect(0, 5, 30, 10);
+            
+            // Rubber band (red)
+            newspaperGraphics.fillStyle(0xE53935, 1);
+            newspaperGraphics.fillRect(13, 3, 4, 14);
+            
+            // Text lines (to make it look like a newspaper)
+            newspaperGraphics.lineStyle(1, 0x9E9E9E, 1);
+            newspaperGraphics.lineBetween(3, 8, 11, 8);
+            newspaperGraphics.lineBetween(3, 12, 11, 12);
+            newspaperGraphics.lineBetween(19, 8, 27, 8);
+            newspaperGraphics.lineBetween(19, 12, 27, 12);
+            
+            newspaperGraphics.generateTexture('newspaper', 30, 20);
+            newspaperGraphics.destroy();
+            
+            console.log('✅ Newspaper placeholder texture created!');
+            
+            // =============================================================
+            // SQUIRREL PLACEHOLDERS
+            // Two versions: innocent (cute) and evil (scary eyebrows!)
+            // =============================================================
+            
+            createSquirrelTexture.call(this, 'squirrel-innocent', false);
+            createSquirrelTexture.call(this, 'squirrel-evil', true);
+            
+            console.log('✅ Squirrel textures created (innocent & evil)!');
+            
+            // =============================================================
+            // BULLY PLACEHOLDER
+            // A mean kid in a "Dottie Bacon" shirt
+            // =============================================================
+            
+            createBullyTexture.call(this);
+            console.log('✅ Bully texture created!');
+            
+            // =============================================================
+            // WORD BUBBLE PLACEHOLDER
+            // A speech bubble that falls like a meteor
+            // =============================================================
+            
+            createWordBubbleTexture.call(this);
+            console.log('✅ Word bubble texture created!');
+            
+            // =============================================================
+            // PARTICLE PLACEHOLDER
+            // Simple circle for particle effects
+            // =============================================================
+            
+            const particleGraphics = this.make.graphics({ x: 0, y: 0, add: false });
+            particleGraphics.fillStyle(0xFFFFFF, 1);
+            particleGraphics.fillCircle(4, 4, 4);
+            particleGraphics.generateTexture('particle', 8, 8);
+            particleGraphics.destroy();
+            
+            console.log('✅ Particle texture created!');
+            
+            // =============================================================
+            // POWER-UP TEXTURES
+            // Tasty treats that restore confidence!
+            // =============================================================
+            
+            createChocolateTexture.call(this);
+            createCaramelAppleTexture.call(this);
+            
+            console.log('✅ Power-up textures created (chocolate & caramel apple)!');
+        }
+        
+        /**
+         * Create the chocolate candy bar texture
+         * 
+         * 🍫 A delicious chocolate bar!
+         */
+        function createChocolateTexture() {
+            const g = this.make.graphics({ x: 0, y: 0, add: false });
+            
+            // Wrapper (golden/yellow)
+            g.fillStyle(0xFFD700, 1);
+            g.fillRect(2, 8, 28, 16);
+            
+            // Wrapper ends (folded)
+            g.fillStyle(0xDAA520, 1);
+            g.fillTriangle(2, 8, 2, 24, -3, 16);
+            g.fillTriangle(30, 8, 30, 24, 35, 16);
+            
+            // Exposed chocolate (dark brown)
+            g.fillStyle(0x3E2723, 1);
+            g.fillRect(6, 10, 20, 12);
+            
+            // Chocolate segments
+            g.lineStyle(1, 0x2E1B18, 1);
+            g.lineBetween(11, 10, 11, 22);
+            g.lineBetween(16, 10, 16, 22);
+            g.lineBetween(21, 10, 21, 22);
+            
+            // Shine on wrapper
+            g.fillStyle(0xFFFFFF, 0.3);
+            g.fillRect(4, 9, 8, 3);
+            
+            g.generateTexture('powerup-chocolate', 35, 32);
+            g.destroy();
+        }
+        
+        /**
+         * Create the caramel apple texture
+         * 
+         * 🍎 A yummy caramel-coated apple!
+         */
+        function createCaramelAppleTexture() {
+            const g = this.make.graphics({ x: 0, y: 0, add: false });
+            
+            // Stick (wooden)
+            g.fillStyle(0x8B4513, 1);
+            g.fillRect(14, 0, 4, 12);
+            
+            // Apple base (red, partially visible)
+            g.fillStyle(0xDC143C, 1);
+            g.fillCircle(16, 20, 12);
+            
+            // Caramel coating (golden brown, covers most of apple)
+            g.fillStyle(0xD2691E, 1);
+            g.fillCircle(16, 22, 11);
+            
+            // Caramel drips
+            g.fillStyle(0xD2691E, 1);
+            g.fillEllipse(10, 14, 4, 6);
+            g.fillEllipse(22, 15, 4, 5);
+            g.fillEllipse(16, 12, 3, 4);
+            
+            // Shine on caramel
+            g.fillStyle(0xFFFFFF, 0.3);
+            g.fillEllipse(12, 18, 4, 6);
+            
+            // Red apple showing at top
+            g.fillStyle(0xDC143C, 1);
+            g.fillCircle(16, 14, 5);
+            
+            // Leaf
+            g.fillStyle(0x228B22, 1);
+            g.fillEllipse(20, 5, 5, 3);
+            
+            g.generateTexture('powerup-caramel-apple', 32, 35);
+            g.destroy();
+        }
+        
+        /**
+         * Create the bully texture
+         * 
+         * WHY a function? Keeps preload cleaner and texture code organized
+         */
+        function createBullyTexture() {
+            const g = this.make.graphics({ x: 0, y: 0, add: false });
+            
+            // =============================================================
+            // BULLY BODY - Stocky and intimidating
+            // =============================================================
+            
+            // Legs (dark jeans)
+            g.fillStyle(0x1a1a2e, 1);
+            g.fillRect(12, 45, 10, 18);  // Left leg
+            g.fillRect(25, 45, 10, 18);  // Right leg
+            
+            // Shoes (black sneakers)
+            g.fillStyle(0x000000, 1);
+            g.fillRect(10, 60, 14, 5);
+            g.fillRect(23, 60, 14, 5);
+            
+            // Body - "Dottie Bacon" shirt (maroon/burgundy)
+            g.fillStyle(0x800020, 1);  // Burgundy
+            g.fillRect(10, 22, 27, 25);
+            
+            // Shirt text area (lighter rectangle for the text)
+            g.fillStyle(0xFFFFFF, 0.9);
+            g.fillRect(13, 28, 21, 14);
+            
+            // "DB" text on shirt (simplified)
+            g.fillStyle(0x800020, 1);
+            g.fillRect(15, 30, 3, 10);  // D
+            g.fillRect(18, 30, 2, 2);   // D top
+            g.fillRect(18, 35, 2, 2);   // D middle
+            g.fillRect(18, 38, 2, 2);   // D bottom
+            g.fillRect(23, 30, 3, 10);  // B
+            g.fillRect(26, 30, 2, 2);   // B top
+            g.fillRect(26, 34, 2, 2);   // B middle
+            g.fillRect(26, 38, 2, 2);   // B bottom
+            
+            // Arms (skin tone, raised menacingly)
+            g.fillStyle(0xFFDBAC, 1);
+            g.fillRect(2, 22, 10, 8);   // Left arm (raised)
+            g.fillRect(35, 22, 10, 8);  // Right arm (raised)
+            
+            // Fists
+            g.fillStyle(0xFFDBAC, 1);
+            g.fillCircle(5, 20, 5);     // Left fist
+            g.fillCircle(42, 20, 5);    // Right fist
+            
+            // =============================================================
+            // BULLY HEAD - Mean expression
+            // =============================================================
+            
+            // Head (skin tone)
+            g.fillStyle(0xFFDBAC, 1);
+            g.fillCircle(23, 12, 11);
+            
+            // Hair (short, spiky - dark)
+            g.fillStyle(0x2F1810, 1);
+            g.fillRect(14, 2, 18, 7);
+            g.fillTriangle(14, 2, 14, 9, 10, 6);  // Spike left
+            g.fillTriangle(32, 2, 32, 9, 36, 6);  // Spike right
+            
+            // Mean eyebrows (angry, angled down)
+            g.lineStyle(2, 0x2F1810, 1);
+            g.lineBetween(16, 9, 21, 11);   // Left eyebrow
+            g.lineBetween(25, 11, 30, 9);   // Right eyebrow
+            
+            // Eyes (narrow, mean)
+            g.fillStyle(0x000000, 1);
+            g.fillRect(17, 12, 4, 3);
+            g.fillRect(26, 12, 4, 3);
+            
+            // Mean smirk
+            g.lineStyle(2, 0x000000, 1);
+            g.beginPath();
+            g.moveTo(18, 18);
+            g.lineTo(23, 16);
+            g.lineTo(28, 18);
+            g.strokePath();
+            
+            g.generateTexture('bully', 47, 65);
+            g.destroy();
+        }
+        
+        /**
+         * Create the word bubble texture
+         * 
+         * WHY a speech bubble shape? The mean words come in speech bubbles!
+         */
+        function createWordBubbleTexture() {
+            const g = this.make.graphics({ x: 0, y: 0, add: false });
+            
+            // Main bubble (angry red-tinted white)
+            g.fillStyle(0xFFE4E1, 1);  // Misty rose - slightly angry
+            g.fillRoundedRect(5, 5, 55, 30, 8);
+            
+            // Border (red for "mean")
+            g.lineStyle(3, 0xFF6B6B, 1);
+            g.strokeRoundedRect(5, 5, 55, 30, 8);
+            
+            // Angry spikes around the bubble (like a yelling bubble)
+            g.fillStyle(0xFF6B6B, 1);
+            g.fillTriangle(10, 5, 15, -3, 20, 5);   // Top spike 1
+            g.fillTriangle(35, 5, 40, -5, 45, 5);   // Top spike 2
+            g.fillTriangle(55, 15, 65, 18, 55, 25); // Right spike
+            g.fillTriangle(5, 12, -3, 18, 5, 24);   // Left spike
+            
+            // Tail pointing down (where it "came from")
+            g.fillStyle(0xFFE4E1, 1);
+            g.fillTriangle(25, 35, 35, 35, 30, 45);
+            g.lineStyle(3, 0xFF6B6B, 1);
+            g.lineBetween(25, 35, 30, 45);
+            g.lineBetween(35, 35, 30, 45);
+            
+            g.generateTexture('wordbubble', 70, 50);
+            g.destroy();
+        }
+        
+        /**
+         * Create a squirrel texture
+         * 
+         * WHY a function? We need TWO versions - innocent and evil!
+         * The evil one has scary angry eyebrows!
+         * 
+         * @param {string} textureName - Name for the texture
+         * @param {boolean} isEvil - True for scary eyebrows, false for cute
+         */
+        function createSquirrelTexture(textureName, isEvil) {
+            const g = this.make.graphics({ x: 0, y: 0, add: false });
+            
+            // =============================================================
+            // SQUIRREL BODY - Cute and round!
+            // =============================================================
+            
+            // Main body (brown, oval shape)
+            g.fillStyle(0x8B4513, 1);  // Saddle brown
+            g.fillEllipse(15, 15, 20, 16);
+            
+            // Lighter belly
+            g.fillStyle(0xDEB887, 1);  // Burlywood
+            g.fillEllipse(13, 17, 10, 8);
+            
+            // =============================================================
+            // FLUFFY TAIL - The signature squirrel feature!
+            // =============================================================
+            
+            g.fillStyle(0x8B4513, 1);
+            // Tail curves up and over (multiple circles for fluffy effect)
+            g.fillCircle(28, 12, 6);
+            g.fillCircle(30, 6, 5);
+            g.fillCircle(28, 2, 4);
+            g.fillCircle(24, 0, 3);
+            
+            // Lighter tail tip
+            g.fillStyle(0xA0522D, 1);
+            g.fillCircle(28, 3, 3);
+            
+            // =============================================================
+            // HEAD AND FACE
+            // =============================================================
+            
+            // Head
+            g.fillStyle(0x8B4513, 1);
+            g.fillCircle(5, 10, 7);
+            
+            // Cute round ears
+            g.fillCircle(1, 4, 3);
+            g.fillCircle(9, 4, 3);
+            
+            // Inner ear (pink)
+            g.fillStyle(0xFFB6C1, 1);
+            g.fillCircle(1, 4, 1.5);
+            g.fillCircle(9, 4, 1.5);
+            
+            // =============================================================
+            // EYES - Innocent or EVIL?
+            // =============================================================
+            
+            // Eye whites
+            g.fillStyle(0xFFFFFF, 1);
+            g.fillCircle(3, 9, 2.5);
+            g.fillCircle(8, 9, 2.5);
+            
+            // Pupils
+            g.fillStyle(0x000000, 1);
+            g.fillCircle(3, 9, 1.5);
+            g.fillCircle(8, 9, 1.5);
+            
+            // Eye shine (cute sparkle)
+            g.fillStyle(0xFFFFFF, 1);
+            g.fillCircle(2, 8, 0.7);
+            g.fillCircle(7, 8, 0.7);
+            
+            if (isEvil) {
+                // =============================================================
+                // SCARY ANGRY EYEBROWS! 😈
+                // =============================================================
+                
+                // Thick angry eyebrows pointing down toward the nose
+                g.fillStyle(0x2F1810, 1);  // Dark brown, almost black
+                
+                // Left eyebrow (angled down toward center) - thicker!
+                g.lineStyle(3, 0x2F1810, 1);
+                g.beginPath();
+                g.moveTo(0, 5);      // Start high on the outside
+                g.lineTo(5, 7);      // End low toward the center
+                g.strokePath();
+                
+                // Right eyebrow (angled down toward center) - thicker!
+                g.beginPath();
+                g.moveTo(11, 5);     // Start high on the outside
+                g.lineTo(6, 7);      // End low toward the center
+                g.strokePath();
+                
+                // Add extra "angry" marks
+                g.lineStyle(1, 0xFF0000, 0.6);
+                g.lineBetween(11, 2, 13, 4);  // Anger vein marks
+            }
+            
+            // =============================================================
+            // NOSE AND MOUTH
+            // =============================================================
+            
+            // Little pink nose
+            g.fillStyle(0xFF69B4, 1);
+            g.fillCircle(1, 12, 1.5);
+            
+            // Tiny front teeth (because squirrel!)
+            g.fillStyle(0xFFFFFF, 1);
+            g.fillRect(0, 13, 1, 2);
+            g.fillRect(2, 13, 1, 2);
+            
+            // =============================================================
+            // LITTLE PAWS
+            // =============================================================
+            
+            g.fillStyle(0x8B4513, 1);
+            // Front paws
+            g.fillEllipse(5, 22, 4, 3);
+            // Back paws (slightly bigger)
+            g.fillEllipse(18, 22, 5, 3);
+            
+            // Generate the texture
+            g.generateTexture(textureName, 35, 25);
+            g.destroy();
+        }
+        
+        /**
+         * Create the student character texture
+         * 
+         * WHY a function? We need to create TWO versions (happy and sad)
+         * with mostly the same code, just different expressions!
+         * 
+         * @param {string} textureName - Name for the texture ('player-happy' or 'player-sad')
+         * @param {boolean} isHappy - True for smile, false for frown
+         */
+        function createStudentTexture(textureName, isHappy) {
+            const g = this.make.graphics({ x: 0, y: 0, add: false });
+            
+            // =============================================================
+            // BLUE BACKPACK (drawn first so it's behind the body)
+            // =============================================================
+            g.fillStyle(0x2196F3, 1);  // Nice blue color
+            g.fillRect(8, 22, 24, 30); // Main backpack body
+            
+            // Backpack straps
+            g.fillStyle(0x1976D2, 1);  // Darker blue for straps
+            g.fillRect(10, 22, 4, 15); // Left strap
+            g.fillRect(26, 22, 4, 15); // Right strap
+            
+            // Backpack pocket
+            g.fillStyle(0x1565C0, 1);  // Even darker blue
+            g.fillRect(12, 38, 16, 10);
+            
+            // Backpack zipper
+            g.lineStyle(1, 0xFFEB3B, 1); // Yellow zipper
+            g.lineBetween(14, 43, 26, 43);
+            
+            // =============================================================
+            // BODY (pink shirt/dress)
+            // =============================================================
+            g.fillStyle(0xF48FB1, 1);  // Pink
+            g.fillRect(10, 25, 20, 25); // Torso
+            
+            // =============================================================
+            // HEAD (skin tone)
+            // =============================================================
+            g.fillStyle(0xFFE0BD, 1);  // Light skin tone
+            g.fillCircle(20, 14, 12);  // Head
+            
+            // =============================================================
+            // BLONDE HAIR
+            // =============================================================
+            g.fillStyle(0xFFD54F, 1);  // Blonde/golden color
+            
+            // Hair top (bangs)
+            g.fillRect(8, 2, 24, 10);
+            
+            // Hair sides (pigtails/long hair)
+            g.fillRect(6, 8, 6, 18);   // Left side hair
+            g.fillRect(28, 8, 6, 18);  // Right side hair
+            
+            // Hair curve on top
+            g.fillCircle(20, 6, 10);
+            
+            // =============================================================
+            // FACE
+            // =============================================================
+            
+            // Eyes (big and cute!)
+            g.fillStyle(0xFFFFFF, 1);  // White of eyes
+            g.fillCircle(14, 13, 4);   // Left eye
+            g.fillCircle(26, 13, 4);   // Right eye
+            
+            // Pupils (looking forward)
+            g.fillStyle(0x5D4037, 1);  // Brown eyes
+            g.fillCircle(15, 13, 2);   // Left pupil
+            g.fillCircle(27, 13, 2);   // Right pupil
+            
+            // Eye shine (makes eyes look alive!)
+            g.fillStyle(0xFFFFFF, 1);
+            g.fillCircle(14, 12, 1);   // Left shine
+            g.fillCircle(26, 12, 1);   // Right shine
+            
+            // Eyebrows
+            g.lineStyle(2, 0xFFB300, 1); // Darker blonde
+            if (isHappy) {
+                // Normal happy eyebrows
+                g.lineBetween(11, 8, 17, 9);  // Left eyebrow
+                g.lineBetween(23, 9, 29, 8);  // Right eyebrow
+            } else {
+                // Worried eyebrows (angled up in middle)
+                g.lineBetween(11, 10, 17, 7); // Left eyebrow (worried)
+                g.lineBetween(23, 7, 29, 10); // Right eyebrow (worried)
+            }
+            
+            // Blush (cute pink cheeks)
+            g.fillStyle(0xFFAB91, 0.5);
+            g.fillCircle(9, 17, 3);    // Left blush
+            g.fillCircle(31, 17, 3);   // Right blush
+            
+            // Mouth - THE KEY DIFFERENCE!
+            g.lineStyle(2, 0xE91E63, 1); // Pink mouth color
+            g.beginPath();
+            if (isHappy) {
+                // Big happy smile! 😊
+                g.arc(20, 19, 6, 0.1 * Math.PI, 0.9 * Math.PI);
+            } else {
+                // Worried frown 😟
+                g.arc(20, 24, 5, 1.1 * Math.PI, 1.9 * Math.PI);
+            }
+            g.strokePath();
+            
+            // =============================================================
+            // LEGS
+            // =============================================================
+            g.fillStyle(0xFFE0BD, 1);  // Skin tone
+            g.fillRect(12, 50, 6, 10); // Left leg
+            g.fillRect(22, 50, 6, 10); // Right leg
+            
+            // Shoes
+            g.fillStyle(0x7B1FA2, 1);  // Purple shoes
+            g.fillRect(10, 57, 8, 5);  // Left shoe
+            g.fillRect(22, 57, 8, 5);  // Right shoe
+            
+            // =============================================================
+            // ARMS
+            // =============================================================
+            g.fillStyle(0xFFE0BD, 1);  // Skin tone
+            g.fillRect(4, 28, 6, 12);  // Left arm
+            g.fillRect(30, 28, 6, 12); // Right arm
+            
+            // Generate the texture!
+            g.generateTexture(textureName, 40, 62);
+            g.destroy();
+        }
+
+        /**
+         * Create Function
+         * 
+         * Called ONCE after preload finishes.
+         * Use this to create game objects, set up physics, etc.
+         * 
+         * WHY create separately? We only want to set things up once,
+         * not every frame!
+         */
+        function create() {
+            console.log('🎬 Creating game world...');
+            
+            // Create the scrolling parallax background
+            // WHY first? Background should be behind everything else!
+            this.background = new Background(this);
+            
+            // Create the ground platform for physics collisions
+            // WHY separate from background? We need a physics body for collisions!
+            createGround.call(this);
+            
+            // Create our student (the player!)
+            // WHY store in 'this'? So we can access it in update()
+            // Position: center-left of screen, above the ground
+            this.student = new Student(this, 200, 450);
+            
+            // Make the student collide with the ground
+            // WHY? Physics objects pass through each other by default
+            this.physics.add.collider(this.student, this.ground);
+            
+            // Create the grumpy Old Man NPC
+            // WHY position at 600? Right side of screen, on his "yard"
+            createOldMan.call(this);
+            
+            // Add UI text showing controls
+            createControlsUI.call(this);
+            
+            // Add confidence display
+            createConfidenceUI.call(this);
+            
+            // Add distance traveled display
+            createDistanceUI.call(this);
+            
+            // Set up game over event listener
+            // WHY use events? The player tells us when game over happens
+            // This keeps the scene and player code separate (loose coupling)
+            this.events.on('gameOver', showGameOverScreen, this);
+            
+            // =============================================================
+            // GAME ZONES
+            // Different areas with unique challenges!
+            // =============================================================
+            
+            // Create the Dottie Bacon School zone (activates at 500m)
+            // WHY a zone? Creates a distinct area with different obstacles
+            this.dottieBaconSchool = new DottieBaconSchool(this);
+            
+            // Create the Blueberrydale Public Library - the GOAL at 1500m!
+            // WHY? Gives the player something to work toward!
+            this.blueberrydaleLibrary = new BlueberrydaleLibrary(this);
+            
+            // =============================================================
+            // POWER-UP SYSTEM
+            // Spawns treats that restore confidence!
+            // =============================================================
+            
+            this.powerUpManager = new PowerUpManager(this);
+            
+            // =============================================================
+            // GAME SPEED SYSTEM
+            // Game gets faster every 100 meters!
+            // =============================================================
+            
+            // Track current game speed multiplier
+            // WHY start at 1? Normal speed at the beginning
+            this.gameSpeedMultiplier = 1.0;
+            
+            // Track last speed increase distance
+            this.lastSpeedIncreaseDistance = 0;
+            
+            // Speed increase interval (100 meters = 1000 pixels)
+            this.speedIncreaseInterval = 1000;
+            
+            // Speed increase amount (2% faster each time)
+            this.speedIncreaseAmount = 0.02;
+            
+            console.log('✅ Library Run - Game created successfully!');
+            console.log('📐 Canvas size: 800x600');
+            console.log('🏘️ Scrolling neighborhood background active!');
+            console.log('🎒 Student ready at position (200, 450)');
+            console.log('👴 Old Man ready to patrol and throw newspapers!');
+            console.log('🏫 Dottie Bacon School zone ready at 500m!');
+            console.log('📚 Blueberrydale Library (GOAL) at 1500m!');
+            console.log('🍫 Power-ups spawn every ~60m, candy bars every 250m!');
+            console.log('⚡ Game speeds up 2% every 100m!');
+        }
+        
+        /**
+         * Create the grumpy Old Man NPC
+         * 
+         * WHY a separate function?
+         * - Keeps create() clean
+         * - Easy to add more old men later (or other NPCs)
+         */
+        function createOldMan() {
+            // The Old Man now uses a patrol pattern!
+            // He'll enter from the right, walk across throwing newspapers,
+            // occasionally stop for back pain (spawning squirrels), then exit.
+            // WHY 505? Standing on the ground (575 ground - 70 height)
+            this.oldMan = new OldMan(this, 0, 505);  // X is ignored - he starts off-screen
+        }
+        
+        /**
+         * Create the ground platform
+         * 
+         * WHY a separate function?
+         * - Keeps create() cleaner
+         * - Ground creation might get more complex later
+         */
+        function createGround() {
+            // Create a graphics object for the ground (sidewalk)
+            // WHY still need this? The Background class handles visuals,
+            // but we need a physics body for the player to stand on!
+            const groundGraphics = this.make.graphics({ x: 0, y: 0, add: false });
+            
+            // Draw the sidewalk - matches the background's ground layer
+            groundGraphics.fillStyle(0x9E9E9E, 1);  // Concrete gray
+            groundGraphics.fillRect(0, 0, 800, 50);
+            
+            // Add sidewalk texture (subtle lines)
+            groundGraphics.lineStyle(1, 0x757575, 0.3);
+            for (let x = 0; x < 800; x += 80) {
+                groundGraphics.lineBetween(x, 0, x, 50);
+            }
+            
+            // Generate texture from graphics
+            groundGraphics.generateTexture('ground', 800, 50);
+            groundGraphics.destroy();
+            
+            // Create the ground as a static physics object
+            // WHY static? The ground doesn't move or fall!
+            this.ground = this.physics.add.staticImage(400, 575, 'ground');
+            
+            // Set depth so it appears in front of background but behind player
+            this.ground.setDepth(-10);
+            
+            console.log('🚶 Sidewalk platform created!');
+        }
+        
+        /**
+         * Create the controls help text
+         */
+        function createControlsUI() {
+            // Add title
+            const titleText = this.add.text(400, 30, '📚 Library Run 📚', {
+                fontSize: '32px',
+                fontFamily: 'Arial',
+                color: '#2c3e50',
+                fontStyle: 'bold'
+            });
+            titleText.setOrigin(0.5);
+            
+            // Add control instructions
+            const controlsText = this.add.text(400, 70, '⌨️ Arrow Keys / WASD to move  |  ↑ / W / Space to jump', {
+                fontSize: '14px',
+                fontFamily: 'Arial',
+                color: '#7f8c8d'
+            });
+            controlsText.setOrigin(0.5);
+        }
+        
+        /**
+         * Create the confidence meter UI
+         * 
+         * WHY use a class? The ConfidenceMeter class handles:
+         * - Creating the bar visuals
+         * - Updating width and color automatically
+         * - Fun visual effects when confidence changes!
+         */
+        function createConfidenceUI() {
+            // Create the confidence meter using our new class!
+            // WHY pass Student.MAX_CONFIDENCE? So the meter knows the max value
+            this.confidenceMeter = new ConfidenceMeter(this, Student.MAX_CONFIDENCE);
+            
+            // Connect the student to the confidence meter
+            // WHY? So when the student takes damage, the meter updates automatically!
+            this.student.confidenceMeter = this.confidenceMeter;
+        }
+        
+        /**
+         * Create the distance traveled UI
+         * 
+         * WHY track distance?
+         * - Shows progress toward the library
+         * - Gives players a sense of accomplishment
+         * - Could be used for high scores!
+         */
+        function createDistanceUI() {
+            // Distance label
+            this.add.text(600, 100, 'Distance:', {
+                fontSize: '18px',
+                fontFamily: 'Arial',
+                color: '#2c3e50',
+                fontStyle: 'bold'
+            });
+            
+            // Distance value
+            this.distanceText = this.add.text(600, 125, '0m', {
+                fontSize: '24px',
+                fontFamily: 'Arial',
+                color: '#1976D2'
+            });
+            
+            // Library distance indicator (dynamic - updates as you get closer!)
+            this.libraryDistanceText = this.add.text(600, 155, '📚 1500m', {
+                fontSize: '14px',
+                fontFamily: 'Arial',
+                color: '#7f8c8d'
+            });
+        }
+        
+        /**
+         * Show the Game Over screen
+         * 
+         * WHY a full-screen overlay?
+         * - Clearly shows the player they lost
+         * - Provides a retry option
+         * - Makes the "defeat" feel meaningful
+         */
+        function showGameOverScreen() {
+            console.log('🎮 Showing game over screen...');
+            
+            // Create a semi-transparent dark overlay
+            // WHY? Dims the game world to focus attention on the message
+            const overlay = this.add.rectangle(400, 300, 800, 600, 0x000000, 0.7);
+            overlay.setDepth(100);  // Make sure it's on top of everything
+            
+            // Main "Game Over" message
+            // WHY large text? It's the most important thing on screen
+            const gameOverText = this.add.text(400, 180, '😢 Oh no!', {
+                fontSize: '64px',
+                fontFamily: 'Arial',
+                color: '#ffffff',
+                fontStyle: 'bold'
+            });
+            gameOverText.setOrigin(0.5);  // Center the text
+            gameOverText.setDepth(101);
+            
+            // Encouraging subtitle
+            // WHY this message? It's a kid-friendly game - be encouraging!
+            const subtitleText = this.add.text(400, 260, 'Your confidence ran out...', {
+                fontSize: '28px',
+                fontFamily: 'Arial',
+                color: '#cccccc'
+            });
+            subtitleText.setOrigin(0.5);
+            subtitleText.setDepth(101);
+            
+            // Distance achieved
+            // WHY show this? Gives the player a sense of progress
+            const meters = this.background ? 
+                Math.floor(this.background.getScrollDistance() / 10) : 0;
+            const distanceText = this.add.text(400, 320, `You made it ${meters}m toward the library!`, {
+                fontSize: '22px',
+                fontFamily: 'Arial',
+                color: '#87CEEB'
+            });
+            distanceText.setOrigin(0.5);
+            distanceText.setDepth(101);
+            
+            // Hopeful message
+            // WHY? End on a positive note - it's okay to try again!
+            const hopeText = this.add.text(400, 380, '🌟 Maybe tomorrow will be better! 🌟', {
+                fontSize: '24px',
+                fontFamily: 'Arial',
+                color: '#FFD700'
+            });
+            hopeText.setOrigin(0.5);
+            hopeText.setDepth(101);
+            
+            // Retry button (clickable text)
+            // WHY a button? Players need a way to try again!
+            const retryButton = this.add.text(400, 460, '🔄 Try Again', {
+                fontSize: '32px',
+                fontFamily: 'Arial',
+                color: '#4CAF50',
+                backgroundColor: '#ffffff',
+                padding: { x: 20, y: 10 }
+            });
+            retryButton.setOrigin(0.5);
+            retryButton.setDepth(101);
+            retryButton.setInteractive({ useHandCursor: true });
+            
+            // Button hover effects
+            // WHY? Visual feedback makes it clear the button is clickable
+            retryButton.on('pointerover', () => {
+                retryButton.setStyle({ backgroundColor: '#e8e8e8' });
+            });
+            retryButton.on('pointerout', () => {
+                retryButton.setStyle({ backgroundColor: '#ffffff' });
+            });
+            
+            // Restart the game when clicked
+            // WHY scene.restart()? Resets everything to the beginning
+            retryButton.on('pointerdown', () => {
+                console.log('🔄 Restarting game...');
+                this.scene.restart();
+            });
+            
+            // Animate the elements appearing
+            // WHY animate? Makes it feel more polished and less jarring
+            [gameOverText, subtitleText, distanceText, hopeText, retryButton].forEach((item, index) => {
+                item.setAlpha(0);
+                this.tweens.add({
+                    targets: item,
+                    alpha: 1,
+                    duration: 400,
+                    delay: index * 150  // Stagger the animations
+                });
+            });
+        }
+        
+        /**
+         * Update the distance display
+         * 
+         * WHY divide by 10? Converts pixels to a more reasonable "meter" unit
+         */
+        function updateDistanceUI() {
+            if (this.background && this.distanceText) {
+                // Convert pixels to "meters" (1 meter = 10 pixels)
+                const meters = Math.floor(this.background.getScrollDistance() / 10);
+                const libraryDistance = 1500;  // Goal is at 1500m
+                const remaining = Math.max(0, libraryDistance - meters);
+                
+                // Show distance traveled and remaining
+                this.distanceText.setText(meters + 'm');
+                
+                // Update library distance text
+                if (this.libraryDistanceText) {
+                    if (remaining > 0) {
+                        this.libraryDistanceText.setText('📚 ' + remaining + 'm');
+                    } else {
+                        this.libraryDistanceText.setText('📚 HERE!');
+                    }
+                    
+                    // Change color as player gets closer
+                    if (remaining <= 100) {
+                        this.libraryDistanceText.setColor('#4CAF50');  // Green - almost there!
+                    } else if (remaining <= 300) {
+                        this.libraryDistanceText.setColor('#8BC34A');  // Light green
+                    } else if (remaining <= 500) {
+                        this.libraryDistanceText.setColor('#FFEB3B');  // Yellow
+                    }
+                }
+            }
+        }
+
+        /**
+         * Update Function
+         * 
+         * Called every frame (usually 60 times per second!)
+         * Use this for game logic that needs to run continuously.
+         * 
+         * WHY update? Games need to constantly check for input,
+         * move objects, check collisions, etc.
+         */
+        function update(time, delta) {
+            // Update the student (handles movement and input)
+            // WHY check if student exists? Safety first!
+            if (this.student) {
+                this.student.update();
+                
+                // =============================================================
+                // SCROLL ZONE LOGIC
+                // Background only scrolls when player is past the center!
+                // This lets the player move freely in the left half of screen.
+                // =============================================================
+                
+                const SCROLL_THRESHOLD = 400;  // Center of 800px screen
+                
+                // Determine direction player is trying to move
+                const direction = this.student.body.velocity.x > 0 ? 1 : 
+                                  this.student.body.velocity.x < 0 ? -1 : 0;
+                
+                // Should the background scroll?
+                // WHY this logic?
+                // - Scroll RIGHT (direction=1) only if player is at/past center
+                // - Scroll LEFT (direction=-1) only if we've scrolled some distance
+                //   (can't scroll backwards past the start!)
+                const playerPastCenter = this.student.x >= SCROLL_THRESHOLD;
+                const hasScrolledDistance = this.background && this.background.getScrollDistance() > 0;
+                
+                const shouldScrollRight = direction === 1 && playerPastCenter;
+                const shouldScrollLeft = direction === -1 && hasScrolledDistance && this.student.x <= SCROLL_THRESHOLD;
+                
+                const shouldScroll = shouldScrollRight || shouldScrollLeft;
+                
+                // If scrolling, lock player to center position
+                // WHY? Creates the illusion of walking through the world
+                if (shouldScrollRight) {
+                    this.student.x = SCROLL_THRESHOLD;
+                }
+                
+                // Update the scrolling background
+                // WHY pass delta? For smooth, frame-rate independent scrolling
+                if (this.background) {
+                    this.background.update(delta, shouldScroll, direction);
+                }
+                
+                // Update the Old Man NPC
+                // WHY pass the student? So he can aim newspapers at them!
+                if (this.oldMan) {
+                    this.oldMan.update(this.student);
+                }
+                
+                // Update the confidence UI to reflect current confidence
+                // WHY .call(this)? The functions need access to 'this' (the scene)
+                updateConfidenceUI.call(this);
+                
+                // Update the distance UI
+                updateDistanceUI.call(this);
+                
+                // =============================================================
+                // UPDATE GAME ZONES
+                // Check if player has entered special areas
+                // =============================================================
+                
+                // Get current distance for zone checks
+                const currentDistance = this.background ? this.background.getScrollDistance() : 0;
+                
+                // Check Dottie Bacon School zone (500m = 5000px)
+                if (this.dottieBaconSchool) {
+                    this.dottieBaconSchool.checkZone(currentDistance);
+                    this.dottieBaconSchool.update(this.student);
+                }
+                
+                // Check Blueberrydale Library - the goal at 1500m!
+                if (this.blueberrydaleLibrary) {
+                    this.blueberrydaleLibrary.checkZone(currentDistance);
+                }
+                
+                // =============================================================
+                // UPDATE POWER-UPS
+                // Spawn and manage collectible treats
+                // =============================================================
+                
+                if (this.powerUpManager) {
+                    this.powerUpManager.update(currentDistance);
+                }
+                
+                // =============================================================
+                // UPDATE GAME SPEED
+                // Game gets 2% faster every 100 meters!
+                // =============================================================
+                
+                updateGameSpeed.call(this, currentDistance);
+            }
+        }
+        
+        /**
+         * Update game speed based on distance
+         * 
+         * WHY speed up the game?
+         * - Creates increasing challenge as player progresses
+         * - Makes reaching the library a real achievement!
+         * - Every 100 meters = 2% faster
+         * 
+         * @param {number} currentDistance - Current distance in pixels
+         */
+        function updateGameSpeed(currentDistance) {
+            // Check if we've traveled another 100 meters (1000 pixels)
+            const distanceSinceLastIncrease = currentDistance - this.lastSpeedIncreaseDistance;
+            
+            if (distanceSinceLastIncrease >= this.speedIncreaseInterval) {
+                // Increase speed by 2%
+                this.gameSpeedMultiplier += this.speedIncreaseAmount;
+                this.lastSpeedIncreaseDistance = currentDistance;
+                
+                const currentMeters = Math.floor(currentDistance / 10);
+                const speedPercent = Math.round((this.gameSpeedMultiplier - 1) * 100);
+                
+                console.log(`⚡ Speed increased! Now ${speedPercent}% faster (at ${currentMeters}m)`);
+                
+                // Show speed increase notification
+                showSpeedIncreaseNotification.call(this, speedPercent);
+            }
+        }
+        
+        /**
+         * Show a notification when game speed increases
+         */
+        function showSpeedIncreaseNotification(speedPercent) {
+            const notification = this.add.text(
+                400, 200,
+                `⚡ SPEED UP! +${speedPercent}%`,
+                {
+                    fontSize: '18px',
+                    fontFamily: 'Arial',
+                    color: '#FFD700',
+                    backgroundColor: 'rgba(0,0,0,0.7)',
+                    padding: { x: 12, y: 8 },
+                    fontStyle: 'bold'
+                }
+            );
+            notification.setOrigin(0.5);
+            notification.setDepth(200);
+            notification.setScrollFactor(0);
+            
+            // Fade in and out
+            notification.setAlpha(0);
+            this.tweens.add({
+                targets: notification,
+                alpha: 1,
+                duration: 300,
+                yoyo: true,
+                hold: 1000,
+                onComplete: () => notification.destroy()
+            });
+        }
+        
+        /**
+         * Update the confidence meter display
+         * 
+         * WHY sync with student?
+         * - The student tracks their own confidence internally
+         * - We sync the UI meter to match the student's confidence
+         * - This keeps the display always accurate!
+         */
+        function updateConfidenceUI() {
+            // Sync the confidence meter with the student's actual confidence
+            // WHY setConfidence instead of updateConfidence?
+            // - setConfidence sets to an exact value
+            // - updateConfidence adds/subtracts (used when taking damage)
+            if (this.confidenceMeter && this.student) {
+                this.confidenceMeter.setConfidence(this.student.confidence);
+            }
+        }
+
+        // =============================================================
+        // START THE GAME!
+        // =============================================================
+
+        /**
+         * Create the Phaser game instance
+         * 
+         * WHY 'new Phaser.Game(config)'? This is what actually starts everything!
+         * Phaser reads our config and creates the canvas, sets up physics, etc.
+         */
+        const game = new Phaser.Game(config);
+        
+        console.log('🚀 Library Run - Game initialized!');
+    </script>
+</body>
+</html>
