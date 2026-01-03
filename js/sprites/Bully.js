@@ -57,10 +57,12 @@ class Bully extends Phaser.Physics.Arcade.Sprite {
      * @param {boolean} startFromRight - Whether to start from right side
      */
     constructor(scene, x, y, startFromRight = true) {
-        // Start off-screen
+        // Start off-screen using camera-relative coordinates
+        // This fixes the bug where bullies disappear when player moves left
+        const camera = scene.cameras.main;
         const startX = startFromRight ? 
-            Bully.SCREEN_RIGHT + Bully.SPAWN_OFFSET : 
-            Bully.SCREEN_LEFT - Bully.SPAWN_OFFSET;
+            camera.scrollX + camera.width + Bully.SPAWN_OFFSET : 
+            camera.scrollX - Bully.SPAWN_OFFSET;
         
         super(scene, startX, y, 'bully');
         
@@ -208,10 +210,12 @@ class Bully extends Phaser.Physics.Arcade.Sprite {
             // Safety check - don't proceed if destroyed
             if (this.isDestroyed || !this.active || !this.body) return;
             
-            // Position off-screen
+            // Position off-screen using camera-relative coordinates
+            // This fixes the bug where bullies disappear when player moves left
+            const camera = this.scene.cameras.main;
             this.x = fromRight ? 
-                Bully.SCREEN_RIGHT + Bully.SPAWN_OFFSET : 
-                Bully.SCREEN_LEFT - Bully.SPAWN_OFFSET;
+                camera.scrollX + camera.width + Bully.SPAWN_OFFSET : 
+                camera.scrollX - Bully.SPAWN_OFFSET;
             this.y = this.groundY;
             
             this.setVisible(true);
@@ -307,11 +311,13 @@ class Bully extends Phaser.Physics.Arcade.Sprite {
         // 50/50 chance of either side - keeps player guessing!
         const enterFromRight = Math.random() < 0.5;
         
+        // Position off-screen using camera-relative coordinates
+        const camera = this.scene.cameras.main;
         if (enterFromRight) {
-            this.x = Bully.SCREEN_RIGHT + Bully.SPAWN_OFFSET;
+            this.x = camera.scrollX + camera.width + Bully.SPAWN_OFFSET;
             this.patrolDirection = -1;
         } else {
-            this.x = Bully.SCREEN_LEFT - Bully.SPAWN_OFFSET;
+            this.x = camera.scrollX - Bully.SPAWN_OFFSET;
             this.patrolDirection = 1;
         }
         
@@ -337,11 +343,17 @@ class Bully extends Phaser.Physics.Arcade.Sprite {
         }
         
         // Check for screen exit - only when reaching the OPPOSITE side!
-        // patrolDirection = -1 means walking LEFT, so exit when x < SCREEN_LEFT
-        // patrolDirection = +1 means walking RIGHT, so exit when x > SCREEN_RIGHT
+        // Use camera bounds instead of static coordinates to fix disappearing bug
+        // when player moves left
         if (this.currentState === 'charging' || this.currentState === 'exiting') {
-            const exitedLeft = this.patrolDirection === -1 && this.x < Bully.SCREEN_LEFT;
-            const exitedRight = this.patrolDirection === 1 && this.x > Bully.SCREEN_RIGHT;
+            const camera = this.scene.cameras.main;
+            const cameraLeft = camera.scrollX - 100;  // Buffer zone
+            const cameraRight = camera.scrollX + camera.width + 100;  // Buffer zone
+            
+            // patrolDirection = -1 means walking LEFT, so exit when beyond left camera edge
+            // patrolDirection = +1 means walking RIGHT, so exit when beyond right camera edge
+            const exitedLeft = this.patrolDirection === -1 && this.x < cameraLeft;
+            const exitedRight = this.patrolDirection === 1 && this.x > cameraRight;
             
             if (exitedLeft || exitedRight) {
                 this.startWaiting();
