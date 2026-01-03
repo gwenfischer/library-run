@@ -75,8 +75,12 @@ class OldMan extends Phaser.Physics.Arcade.Sprite {
      * @param {number} y - Y position (on the ground)
      */
     constructor(scene, x, y) {
-        // Start off-screen to the right
-        super(scene, OldMan.SCREEN_RIGHT + OldMan.SPAWN_OFFSET, y, 'oldman');
+        // Start off-screen to the right using camera-relative coordinates
+        // This fixes the bug where NPCs disappear when player moves left
+        // WHY camera-relative? Static coordinates don't account for camera scrolling,
+        // causing NPCs to incorrectly appear "off-screen" when the camera moves
+        const camera = scene.cameras.main;
+        super(scene, camera.scrollX + camera.width + OldMan.SPAWN_OFFSET, y, 'oldman');
         
         this.scene = scene;
         
@@ -216,6 +220,7 @@ class OldMan extends Phaser.Physics.Arcade.Sprite {
         this.scene.time.delayedCall(1000, () => {
             console.log('👴 DEBUG: 1 second after warning, positioning old man');
             // Position off-screen using camera-relative coordinates
+            // WHY? Ensures NPC spawns relative to visible viewport, not fixed world coords
             const camera = this.scene.cameras.main;
             if (this.patrolDirection === -1) {
                 this.x = camera.scrollX + camera.width + OldMan.SPAWN_OFFSET;

@@ -123,13 +123,13 @@ To verify this fix works correctly:
 ## Side Effects & Compatibility
 
 - **No breaking changes** - The static `SCREEN_LEFT` and `SCREEN_RIGHT` constants remain defined for potential future use
-- **OldMan NPC may need similar fix** - The OldMan class likely has the same issue pattern
-- **All NPC spawn/exit logic should use camera-relative coords** - This pattern should be adopted across all similar NPCs
+- **OldMan NPC fixed in this PR** - Both Bully and OldMan NPCs now use camera-relative coordinates
+- **All NPC spawn/exit logic should use camera-relative coords** - This pattern should be adopted across any future similar NPCs
 
 ## Related Files
 
-- `js/sprites/Bully.js` - Modified (this fix)
-- `js/sprites/OldMan.js` - May need similar fix (future work)
+- `js/sprites/Bully.js` - Modified (fixed in this PR)
+- `js/sprites/OldMan.js` - Modified (fixed in this PR)
 - `js/zones/DottieBaconSchool.js` - Manages bully creation (no changes needed)
 
 ## Credits

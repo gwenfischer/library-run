@@ -59,6 +59,8 @@ class Bully extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y, startFromRight = true) {
         // Start off-screen using camera-relative coordinates
         // This fixes the bug where bullies disappear when player moves left
+        // WHY camera-relative? Static coordinates don't account for camera scrolling,
+        // causing NPCs to incorrectly appear "off-screen" when the camera moves
         const camera = scene.cameras.main;
         const startX = startFromRight ? 
             camera.scrollX + camera.width + Bully.SPAWN_OFFSET : 
