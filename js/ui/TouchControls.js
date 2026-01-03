@@ -68,17 +68,20 @@ class TouchControls {
     createButtons() {
         // Button styling configuration
         // WHY these values? Large enough for thumbs, visible but not obtrusive
-        const buttonSize = 80;
+        const buttonSize = 96; // Slightly larger for iPad comfort
         const buttonColor = 0x4A90E2;
         const jumpButtonColor = 0xE74C3C;
         const buttonAlpha = 0.7;
         const buttonY = this.scene.game.config.height - 100;
+
+        // Allow multiple simultaneous touches (move + jump together)
+        this.scene.input.addPointer(2); // Default has 1; +2 gives 3 pointers
         
         // =============================================================
         // LEFT BUTTON
         // =============================================================
         
-        const leftX = 60;
+        const leftX = 72;
         
         // Create left arrow button
         this.leftButton = this.scene.add.circle(leftX, buttonY, buttonSize / 2, buttonColor, buttonAlpha);
@@ -116,7 +119,7 @@ class TouchControls {
         // RIGHT BUTTON
         // =============================================================
         
-        const rightX = 160;
+        const rightX = 180;
         
         // Create right arrow button
         this.rightButton = this.scene.add.circle(rightX, buttonY, buttonSize / 2, buttonColor, buttonAlpha);
@@ -154,7 +157,7 @@ class TouchControls {
         // JUMP BUTTON
         // =============================================================
         
-        const jumpX = this.scene.game.config.width - 80;
+        const jumpX = this.scene.game.config.width - 90;
         
         // Create jump button (larger than movement buttons)
         this.jumpButton = this.scene.add.circle(jumpX, buttonY, buttonSize / 1.5, jumpButtonColor, buttonAlpha);
