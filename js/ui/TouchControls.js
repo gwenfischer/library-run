@@ -15,7 +15,7 @@ class TouchControls {
      * Create touch control buttons
      * 
      * @param {Phaser.Scene} scene - The game scene
-     * @param {Student} player - The player object to control
+     * @param {Player} player - The player object to control
      */
     constructor(scene, player) {
         this.scene = scene;
@@ -70,6 +70,7 @@ class TouchControls {
         // WHY these values? Large enough for thumbs, visible but not obtrusive
         const buttonSize = 80;
         const buttonColor = 0x4A90E2;
+        const jumpButtonColor = 0xE74C3C;
         const buttonAlpha = 0.7;
         const buttonY = this.scene.game.config.height - 100;
         
@@ -156,7 +157,7 @@ class TouchControls {
         const jumpX = this.scene.game.config.width - 80;
         
         // Create jump button (larger than movement buttons)
-        this.jumpButton = this.scene.add.circle(jumpX, buttonY, buttonSize / 1.5, 0xE74C3C, buttonAlpha);
+        this.jumpButton = this.scene.add.circle(jumpX, buttonY, buttonSize / 1.5, jumpButtonColor, buttonAlpha);
         this.jumpButton.setInteractive();
         this.jumpButton.setScrollFactor(0);
         this.jumpButton.setDepth(1000);
@@ -182,17 +183,17 @@ class TouchControls {
                 this.jumpJustPressed = true;
             }
             this.jumpWasDown = true;
-            this.jumpButton.setFillStyle(0xE74C3C, 1.0);
+            this.jumpButton.setFillStyle(jumpButtonColor, 1.0);
         });
         
         this.jumpButton.on('pointerup', () => {
             this.jumpWasDown = false;
-            this.jumpButton.setFillStyle(0xE74C3C, buttonAlpha);
+            this.jumpButton.setFillStyle(jumpButtonColor, buttonAlpha);
         });
         
         this.jumpButton.on('pointerout', () => {
             this.jumpWasDown = false;
-            this.jumpButton.setFillStyle(0xE74C3C, buttonAlpha);
+            this.jumpButton.setFillStyle(jumpButtonColor, buttonAlpha);
         });
         
         // Store arrow references for cleanup

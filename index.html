@@ -930,24 +930,19 @@
             titleText.setOrigin(0.5);
             
             // Add control instructions
-            // WHY conditional text? Show keyboard controls on desktop, hide on mobile
+            // WHY conditional text? Show keyboard controls on desktop, touch hint on mobile
             // Touch controls are self-explanatory with the on-screen buttons
             const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-            if (!isTouchDevice) {
-                const controlsText = this.add.text(400, 70, '⌨️ Arrow Keys / WASD to move  |  ↑ / W / Space to jump', {
-                    fontSize: '14px',
-                    fontFamily: 'Arial',
-                    color: '#7f8c8d'
-                });
-                controlsText.setOrigin(0.5);
-            } else {
-                const controlsText = this.add.text(400, 70, '📱 Use touch buttons to move and jump', {
-                    fontSize: '14px',
-                    fontFamily: 'Arial',
-                    color: '#7f8c8d'
-                });
-                controlsText.setOrigin(0.5);
-            }
+            const controlsMessage = isTouchDevice 
+                ? '📱 Use touch buttons to move and jump'
+                : '⌨️ Arrow Keys / WASD to move  |  ↑ / W / Space to jump';
+            
+            const controlsText = this.add.text(400, 70, controlsMessage, {
+                fontSize: '14px',
+                fontFamily: 'Arial',
+                color: '#7f8c8d'
+            });
+            controlsText.setOrigin(0.5);
         }
         
         /**

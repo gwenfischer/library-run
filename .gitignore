@@ -1,0 +1,7 @@
+# Test and demo files
+test-touch-controls.html
+demo-touch-controls.html
+
+# Logs
+logfile.txt
+*.log
