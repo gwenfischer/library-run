@@ -69,6 +69,7 @@
     -->
     <script src="js/Background.js"></script>
     <script src="js/ui/ConfidenceMeter.js"></script>
+    <script src="js/ui/TouchControls.js"></script>
     <script src="js/sprites/Player.js"></script>
     <script src="js/sprites/OldMan.js"></script>
     <script src="js/sprites/Bully.js"></script>
@@ -799,6 +800,16 @@
             // Add distance traveled display
             createDistanceUI.call(this);
             
+            // =============================================================
+            // TOUCH CONTROLS
+            // On-screen buttons for iPad and mobile devices!
+            // =============================================================
+            
+            // Create touch controls and connect to player
+            // WHY after UI? Touch buttons should be on top of everything
+            this.touchControls = new TouchControls(this, this.student);
+            this.student.setTouchControls(this.touchControls);
+            
             // Set up game over event listener
             // WHY use events? The player tells us when game over happens
             // This keeps the scene and player code separate (loose coupling)
@@ -919,12 +930,24 @@
             titleText.setOrigin(0.5);
             
             // Add control instructions
-            const controlsText = this.add.text(400, 70, '⌨️ Arrow Keys / WASD to move  |  ↑ / W / Space to jump', {
-                fontSize: '14px',
-                fontFamily: 'Arial',
-                color: '#7f8c8d'
-            });
-            controlsText.setOrigin(0.5);
+            // WHY conditional text? Show keyboard controls on desktop, hide on mobile
+            // Touch controls are self-explanatory with the on-screen buttons
+            const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+            if (!isTouchDevice) {
+                const controlsText = this.add.text(400, 70, '⌨️ Arrow Keys / WASD to move  |  ↑ / W / Space to jump', {
+                    fontSize: '14px',
+                    fontFamily: 'Arial',
+                    color: '#7f8c8d'
+                });
+                controlsText.setOrigin(0.5);
+            } else {
+                const controlsText = this.add.text(400, 70, '📱 Use touch buttons to move and jump', {
+                    fontSize: '14px',
+                    fontFamily: 'Arial',
+                    color: '#7f8c8d'
+                });
+                controlsText.setOrigin(0.5);
+            }
         }
         
         /**

@@ -170,7 +170,25 @@ class Student extends Phaser.Physics.Arcade.Sprite {
         // WHY? Spacebar is a classic jump key!
         this.spaceBar = this.scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
         
+        // Touch controls reference (set later by the scene)
+        // WHY null initially? TouchControls are created after the player
+        this.touchControls = null;
+        
         console.log('⌨️ Controls ready: Arrow Keys or WASD to move, Up/W/Space to jump');
+    }
+    
+    /**
+     * Set the touch controls reference
+     * 
+     * @param {TouchControls} touchControls - The touch controls instance
+     * 
+     * WHY a separate method?
+     * - TouchControls are created after the player in the scene
+     * - Keeps the connection between player and touch controls clear
+     */
+    setTouchControls(touchControls) {
+        this.touchControls = touchControls;
+        console.log('📱 Touch controls connected to player');
     }
     
     // =============================================================
@@ -306,13 +324,19 @@ class Student extends Phaser.Physics.Arcade.Sprite {
      * WHY check both arrow keys AND WASD?
      * - Player choice! Some prefer arrows, some prefer WASD
      * - Both work the same way
+     * WHY also check touch controls?
+     * - iPad and mobile users need touch buttons!
      */
     handleHorizontalMovement() {
-        // Check for left input (LEFT arrow or A key)
-        const isMovingLeft = this.cursors.left.isDown || this.wasd.left.isDown;
+        // Check for left input (LEFT arrow or A key or left touch button)
+        const isMovingLeft = this.cursors.left.isDown || 
+                            this.wasd.left.isDown ||
+                            (this.touchControls && this.touchControls.isLeftPressed());
         
-        // Check for right input (RIGHT arrow or D key)
-        const isMovingRight = this.cursors.right.isDown || this.wasd.right.isDown;
+        // Check for right input (RIGHT arrow or D key or right touch button)
+        const isMovingRight = this.cursors.right.isDown || 
+                             this.wasd.right.isDown ||
+                             (this.touchControls && this.touchControls.isRightPressed());
         
         if (isMovingLeft) {
             this.moveLeft();
@@ -369,12 +393,15 @@ class Student extends Phaser.Physics.Arcade.Sprite {
      * WHY check multiple keys?
      * - UP arrow, W key, and SPACEBAR all feel natural for jumping
      * - Player can use whatever they prefer!
+     * WHY also check touch controls?
+     * - iPad and mobile users need a jump button!
      */
     handleJump() {
-        // Check for jump input
+        // Check for jump input (keyboard or touch)
         const jumpPressed = Phaser.Input.Keyboard.JustDown(this.cursors.up) ||
                            Phaser.Input.Keyboard.JustDown(this.wasd.up) ||
-                           Phaser.Input.Keyboard.JustDown(this.spaceBar);
+                           Phaser.Input.Keyboard.JustDown(this.spaceBar) ||
+                           (this.touchControls && this.touchControls.isJumpJustPressed());
         
         // WHY JustDown instead of isDown?
         // - JustDown only triggers once per key press
