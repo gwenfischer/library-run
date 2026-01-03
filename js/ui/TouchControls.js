@@ -116,6 +116,15 @@ class TouchControls {
             }
         });
         
+        // Handle pointerup on the button itself (in case global handler misses it)
+        this.leftButton.on('pointerup', (pointer) => {
+            if (this.leftPointerId === pointer.id) {
+                this.leftPressed = false;
+                this.leftPointerId = null;
+                this.leftButton.setFillStyle(this.buttonColor, this.buttonAlpha);
+            }
+        });
+        
         // =============================================================
         // RIGHT BUTTON
         // =============================================================
@@ -145,6 +154,15 @@ class TouchControls {
                 this.rightPointerId = pointer.id;
                 this.rightPressed = true;
                 this.rightButton.setFillStyle(this.buttonColor, 1.0);
+            }
+        });
+        
+        // Handle pointerup on the button itself (in case global handler misses it)
+        this.rightButton.on('pointerup', (pointer) => {
+            if (this.rightPointerId === pointer.id) {
+                this.rightPressed = false;
+                this.rightPointerId = null;
+                this.rightButton.setFillStyle(this.buttonColor, this.buttonAlpha);
             }
         });
         
@@ -188,6 +206,15 @@ class TouchControls {
             }
         });
         
+        // Handle pointerup on the button itself (in case global handler misses it)
+        this.jumpButton.on('pointerup', (pointer) => {
+            if (this.jumpPointerId === pointer.id) {
+                this.jumpWasDown = false;
+                this.jumpPointerId = null;
+                this.jumpButton.setFillStyle(this.jumpButtonColor, this.buttonAlpha);
+            }
+        });
+        
         // Store arrow references for cleanup
         this.leftArrow = leftArrow;
         this.rightArrow = rightArrow;
@@ -203,30 +230,35 @@ class TouchControls {
      * - Enables true simultaneous multi-touch (move + jump together)
      */
     setupGlobalPointerHandlers() {
-        // Handle all pointerup events globally
-        // WHY? So we catch pointer releases even if they happen outside the button
-        this.scene.input.on('pointerup', (pointer) => {
+        // Store the handler function so we can remove it in destroy()
+        // WHY? Prevents memory leaks when touch controls are destroyed
+        this.globalPointerUpHandler = (pointer) => {
             // Check if this pointer was controlling the left button
-            if (this.leftPointerId === pointer.id) {
+            // WHY null check? Handler may fire after buttons are destroyed
+            if (this.leftPointerId === pointer.id && this.leftButton) {
                 this.leftPressed = false;
                 this.leftPointerId = null;
                 this.leftButton.setFillStyle(this.buttonColor, this.buttonAlpha);
             }
             
             // Check if this pointer was controlling the right button
-            if (this.rightPointerId === pointer.id) {
+            if (this.rightPointerId === pointer.id && this.rightButton) {
                 this.rightPressed = false;
                 this.rightPointerId = null;
                 this.rightButton.setFillStyle(this.buttonColor, this.buttonAlpha);
             }
             
             // Check if this pointer was controlling the jump button
-            if (this.jumpPointerId === pointer.id) {
+            if (this.jumpPointerId === pointer.id && this.jumpButton) {
                 this.jumpWasDown = false;
                 this.jumpPointerId = null;
                 this.jumpButton.setFillStyle(this.jumpButtonColor, this.buttonAlpha);
             }
-        });
+        };
+        
+        // Handle all pointerup events globally
+        // WHY? So we catch pointer releases even if they happen outside the button
+        this.scene.input.on('pointerup', this.globalPointerUpHandler);
     }
     
     /**
@@ -282,6 +314,12 @@ class TouchControls {
      * - Prevents memory leaks
      */
     destroy() {
+        // Remove global pointer handler to prevent memory leaks
+        // WHY check scene/input? They may be destroyed before touch controls
+        if (this.globalPointerUpHandler && this.scene && this.scene.input) {
+            this.scene.input.off('pointerup', this.globalPointerUpHandler);
+        }
+        
         if (this.leftButton) {
             this.leftButton.destroy();
             this.leftArrow.destroy();
