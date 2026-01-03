@@ -47,22 +47,35 @@ class TouchControls {
     }
     
     /**
-     * Detect if the device has touch capability
+     * Detect if the device has touch capability or is a mobile device
      * 
      * WHY check this?
      * - Desktop users don't need touch buttons cluttering the screen
-     * - Touch devices benefit from visible, tappable controls
+     * - Touch devices and mobile viewports benefit from visible, tappable controls
+     * - Some browsers don't properly report touch support, so we also check screen size
      * 
-     * @returns {boolean} True if touch is available
+     * @returns {boolean} True if touch is available or device appears to be mobile
      */
     detectTouchDevice() {
         // Check multiple indicators of touch support
         // WHY multiple checks? Different browsers expose touch differently
-        return (
+        const hasTouch = (
             'ontouchstart' in window ||
             navigator.maxTouchPoints > 0 ||
             navigator.msMaxTouchPoints > 0
         );
+        
+        // Also check for mobile viewport size
+        // WHY? iOS devices don't always properly report touch support in all browsers
+        // Tablets and phones typically have width <= 1024px
+        const isMobileViewport = window.innerWidth <= 1024;
+        
+        // Check user agent for iOS/iPad/iPhone
+        // WHY? iPad may report as desktop but still needs touch controls
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 0);
+        
+        return hasTouch || isMobileViewport || isIOS;
     }
     
     /**
