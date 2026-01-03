@@ -215,12 +215,13 @@ class OldMan extends Phaser.Physics.Arcade.Sprite {
         // Wait for warning to show, then start walking in
         this.scene.time.delayedCall(1000, () => {
             console.log('👴 DEBUG: 1 second after warning, positioning old man');
-            // Position off-screen
+            // Position off-screen using camera-relative coordinates
+            const camera = this.scene.cameras.main;
             if (this.patrolDirection === -1) {
-                this.x = OldMan.SCREEN_RIGHT + OldMan.SPAWN_OFFSET;
+                this.x = camera.scrollX + camera.width + OldMan.SPAWN_OFFSET;
                 console.log('👴 DEBUG: Positioned at x =', this.x, '(right side)');
             } else {
-                this.x = OldMan.SCREEN_LEFT - OldMan.SPAWN_OFFSET;
+                this.x = camera.scrollX - OldMan.SPAWN_OFFSET;
                 console.log('👴 DEBUG: Positioned at x =', this.x, '(left side)');
             }
             this.y = this.groundY;
@@ -397,12 +398,14 @@ class OldMan extends Phaser.Physics.Arcade.Sprite {
         // WHY 80/20? Right side is more natural, but left keeps player alert
         const enterFromRight = Math.random() < 0.8;
         
+        // Position off-screen using camera-relative coordinates
+        const camera = this.scene.cameras.main;
         if (enterFromRight) {
-            this.x = OldMan.SCREEN_RIGHT + OldMan.SPAWN_OFFSET;
+            this.x = camera.scrollX + camera.width + OldMan.SPAWN_OFFSET;
             this.patrolDirection = -1;
             this.setFlipX(true);
         } else {
-            this.x = OldMan.SCREEN_LEFT - OldMan.SPAWN_OFFSET;
+            this.x = camera.scrollX - OldMan.SPAWN_OFFSET;
             this.patrolDirection = 1;
             this.setFlipX(false);
         }
@@ -439,11 +442,16 @@ class OldMan extends Phaser.Physics.Arcade.Sprite {
         
         // Check for screen exit during patrolling/exiting
         // IMPORTANT: Only exit when reaching the OPPOSITE side from entry!
-        // patrolDirection = -1 means walking LEFT, so exit when x < SCREEN_LEFT
-        // patrolDirection = +1 means walking RIGHT, so exit when x > SCREEN_RIGHT
+        // Use camera bounds instead of static coordinates to fix disappearing bug
         if (this.currentState === 'patrolling' || this.currentState === 'exiting') {
-            const exitedLeft = this.patrolDirection === -1 && this.x < OldMan.SCREEN_LEFT;
-            const exitedRight = this.patrolDirection === 1 && this.x > OldMan.SCREEN_RIGHT;
+            const camera = this.scene.cameras.main;
+            const cameraLeft = camera.scrollX - 100;  // Buffer zone
+            const cameraRight = camera.scrollX + camera.width + 100;  // Buffer zone
+            
+            // patrolDirection = -1 means walking LEFT, so exit when beyond left camera edge
+            // patrolDirection = +1 means walking RIGHT, so exit when beyond right camera edge
+            const exitedLeft = this.patrolDirection === -1 && this.x < cameraLeft;
+            const exitedRight = this.patrolDirection === 1 && this.x > cameraRight;
             
             if (exitedLeft || exitedRight) {
                 this.startWaiting();
