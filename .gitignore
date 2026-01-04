@@ -5,3 +5,7 @@ demo-touch-controls.html
 # Logs
 logfile.txt
 *.log
+
+# External libraries (download from CDN)
+lib/
+

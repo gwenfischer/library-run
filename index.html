@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-fullscreen">
     <title>Library Run</title>
     <style>
         /* 
@@ -32,6 +34,21 @@
             
             /* Nice font for any text we might add */
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            
+            /* Prevent text selection on mobile - improves game feel */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            
+            /* Prevent pull-to-refresh on iOS */
+            overscroll-behavior-y: contain;
+            
+            /* Improve tap responsiveness on iOS */
+            -webkit-tap-highlight-color: transparent;
+            
+            /* Prevent content shift on orientation change */
+            -webkit-text-size-adjust: 100%;
         }
         
         /* Style the game container */
@@ -44,6 +61,45 @@
             
             /* Hide any overflow from the canvas */
             overflow: hidden;
+            
+            /* Ensure container fits on mobile screens */
+            max-width: 100vw;
+            max-height: 100vh;
+        }
+        
+        /* Canvas responsive styling */
+        #game-container canvas {
+            /* Make canvas responsive */
+            display: block;
+            max-width: 100%;
+            max-height: 100%;
+        }
+        
+        /* iPhone-specific adjustments */
+        @media only screen and (max-width: 768px) {
+            body {
+                /* Remove padding on mobile for max screen usage */
+                padding: 0;
+                /* Adjust alignment for mobile */
+                align-items: flex-start;
+            }
+            
+            #game-container {
+                /* Remove border radius on mobile for full-screen feel */
+                border-radius: 0;
+                /* Remove shadow on mobile to save visual space */
+                box-shadow: none;
+                /* Full viewport on mobile */
+                width: 100vw;
+                height: 100vh;
+            }
+        }
+        
+        /* Landscape mode on small screens */
+        @media only screen and (max-height: 500px) and (orientation: landscape) {
+            body {
+                align-items: center;
+            }
         }
     </style>
 </head>
@@ -61,6 +117,12 @@
         This loads the minified version for faster loading
     -->
     <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
+    <!-- Fallback to local copy if CDN fails -->
+    <script>
+        if (typeof Phaser === 'undefined') {
+            document.write('<script src="lib/phaser.min.js"><\/script>');
+        }
+    </script>
 
     <!--
         Game Classes
@@ -107,8 +169,8 @@
             // WHY AUTO? WebGL is faster, but not all browsers support it
             type: Phaser.AUTO,
             
-            // Game dimensions
-            // WHY 800x600? It's a classic size that fits most screens well
+            // Game dimensions (base resolution)
+            // WHY 800x600? It's a classic size that scales well
             width: 800,
             height: 600,
             
@@ -119,6 +181,24 @@
             // Background color (sky blue!)
             // WHY hex color? Phaser accepts hex colors like CSS
             backgroundColor: '#87CEEB',
+            
+            // Scale configuration for responsive display
+            // WHY Scale Manager? Handles responsive scaling across devices
+            scale: {
+                // Scale to fit the parent container
+                mode: Phaser.Scale.FIT,
+                // Center the game in the available space
+                autoCenter: Phaser.Scale.CENTER_BOTH,
+                // Use parent container size
+                parent: 'game-container',
+                // Set base dimensions
+                width: 800,
+                height: 600,
+                // Expand to fill the parent container
+                expandParent: true,
+                // Handle fullscreen on mobile
+                fullscreenTarget: 'game-container'
+            },
             
             // Render settings to prevent blur!
             // WHY these settings? Pixel art can look blurry when moving
